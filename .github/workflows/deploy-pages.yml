@@ -36,10 +36,17 @@ jobs:
           TBA_AUTH_KEY: ${{ secrets.TBA_AUTH_KEY }}
         run: npm run fetch-data
 
+      # Bust browser/CDN caches: old app.js (fewer <td>s) + new index.html = columns misaligned.
       - name: Assemble site
+        env:
+          GITHUB_SHA: ${{ github.sha }}
         run: |
           mkdir -p _site/data
-          cp index.html styles.css app.js _site/
+          cp styles.css app.js _site/
+          cp index.html _site/index.html
+          SHORT=$(printf '%s' "$GITHUB_SHA" | cut -c1-7)
+          sed -i "s|href=\"styles.css\"|href=\"styles.css?v=${SHORT}\"|" _site/index.html
+          sed -i "s|src=\"app.js\"|src=\"app.js?v=${SHORT}\"|" _site/index.html
           cp data/teams-opr-2026.json _site/data/
           touch _site/.nojekyll
 

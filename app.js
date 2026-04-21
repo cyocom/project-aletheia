@@ -181,9 +181,14 @@ async function load() {
   const when = payload.generatedAt
     ? new Date(payload.generatedAt).toLocaleString()
     : "unknown time";
-  metaEl.textContent = `Data from ${when} · ${payload.teamCount ?? payload.teams?.length ?? 0} teams · ${
+  const teamLine = `${payload.teamCount ?? payload.teams?.length ?? 0} teams · ${
     payload.teamsWithOpr ?? "?"
   } with OPR`;
+  let eventLine = "";
+  if (payload.eventsUsedForOpr != null && payload.eventsTotalInYear != null) {
+    eventLine = ` · ${payload.eventsUsedForOpr}/${payload.eventsTotalInYear} official events for OPR`;
+  }
+  metaEl.textContent = `Data from ${when} · ${teamLine}${eventLine}`;
   render();
 }
 

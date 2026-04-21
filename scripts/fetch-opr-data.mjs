@@ -1,5 +1,5 @@
 /**
- * Fetches 2026 FRC teams and each team's highest OPR across any event that year (TBA).
+ * Fetches 2026 FRC teams and each team's highest OPR across official season events only (TBA).
  * Requires: TBA_AUTH_KEY from https://www.thebluealliance.com/account
  * Run: npm run fetch-data
  */
@@ -14,6 +14,14 @@ const OUT = path.join(ROOT, "data", "teams-opr-2026.json");
 const BASE = "https://www.thebluealliance.com/api/v3";
 const YEAR = 2026;
 const MIN_INTERVAL_MS = 150;
+
+/**
+ * TBA `event_type` values that count as FIRST season play (not preseason/offseason).
+ * @see https://github.com/the-blue-alliance/the-blue-alliance/blob/main/src/backend/common/consts/event_type.py
+ */
+const OFFICIAL_SEASON_EVENT_TYPES = new Set([0, 1, 2, 3, 4, 5, 6, 7]);
+// 0 REGIONAL, 1 DISTRICT, 2 DISTRICT_CMP, 3 CMP_DIVISION, 4 CMP_FINALS,
+// 5 DISTRICT_CMP_DIVISION, 6 FOC, 7 REMOTE — excludes 99 OFFSEASON, 100 PRESEASON, -1 UNLABLED
 
 const key = process.env.TBA_AUTH_KEY?.trim();
 if (!key) {
@@ -79,7 +87,11 @@ async function main() {
   }
 
   console.log(`Loading ${YEAR} events…`);
-  const events = await fetchEventSimpleList();
+  const allEvents = await fetchEventSimpleList();
+  const events = allEvents.filter((e) => OFFICIAL_SEASON_EVENT_TYPES.has(e.event_type));
+  console.log(
+    `Using ${events.length} official season events for OPR (${allEvents.length} total in ${YEAR} on TBA).`,
+  );
   const eventNameByKey = new Map(events.map((e) => [e.key, e.name ?? e.key]));
   /** yyyy-mm-dd for sorting; missing dates sort before any real date */
   const eventSortDateByKey = new Map(
@@ -183,6 +195,9 @@ async function main() {
     generatedAt: new Date().toISOString(),
     year: YEAR,
     source: "The Blue Alliance API v3",
+    eventScope: "official_season",
+    eventsUsedForOpr: events.length,
+    eventsTotalInYear: allEvents.length,
     teamCount: teams.length,
     teamsWithOpr,
     teams,
