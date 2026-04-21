@@ -3,14 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>FRC 2026 — max OPR by team</title>
+    <title>FRC 2026 — OPR by team</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <header class="hero">
-      <h1>FRC 2026 — highest OPR per team</h1>
+      <h1>FRC 2026 — OPR by team</h1>
       <p class="lede">
-        Each row is one team’s best OPR at any single event in 2026 (from
+        Each row shows a team’s highest OPR at any 2026 event and their OPR at the calendar-latest
+        event they played (from
         <a href="https://www.thebluealliance.com/">The Blue Alliance</a>). Regenerate
         <code>data/teams-opr-2026.json</code> with
         <code>npm run fetch-data</code> after setting <code>TBA_AUTH_KEY</code>.
@@ -35,10 +36,15 @@
         <table id="grid">
           <thead>
             <tr>
+              <th scope="col" class="th-rank" title="Position for the current sort and filter (not sortable)">
+                Rank
+              </th>
               <th scope="col"><button type="button" data-sort="teamNumber">Team</button></th>
               <th scope="col"><button type="button" data-sort="nickname">Nickname</button></th>
               <th scope="col"><button type="button" data-sort="maxOpr" class="num">Max OPR</button></th>
-              <th scope="col"><button type="button" data-sort="maxOprEventName">Event</button></th>
+              <th scope="col"><button type="button" data-sort="maxOprEventName">Max event</button></th>
+              <th scope="col"><button type="button" data-sort="recentOpr" class="num">Recent OPR</button></th>
+              <th scope="col"><button type="button" data-sort="recentOprEventName">Recent event</button></th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>

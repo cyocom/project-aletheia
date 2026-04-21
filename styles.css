@@ -139,6 +139,15 @@ th {
   border-bottom: 1px solid var(--border);
 }
 
+th.th-rank {
+  text-align: right;
+  padding: 0.65rem 0.75rem;
+  color: var(--muted);
+  font-weight: 600;
+  width: 3.25rem;
+  white-space: nowrap;
+}
+
 th button {
   width: 100%;
   text-align: inherit;
@@ -176,6 +185,10 @@ td.num {
   text-align: right;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+td.col-rank {
+  color: var(--muted);
 }
 
 td.muted {

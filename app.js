@@ -6,7 +6,19 @@ const filterInput = document.getElementById("filter");
 /** @type {{ generatedAt: string, year: number, teamCount: number, teamsWithOpr: number, teams: Row[] }} */
 let payload = null;
 
-/** @typedef {{ teamKey: string, teamNumber: number, nickname: string, maxOpr: number | null, maxOprEventKey: string | null, maxOprEventName: string | null }} Row */
+/**
+ * @typedef {{
+ *   teamKey: string,
+ *   teamNumber: number,
+ *   nickname: string,
+ *   maxOpr: number | null,
+ *   maxOprEventKey: string | null,
+ *   maxOprEventName: string | null,
+ *   recentOpr?: number | null,
+ *   recentOprEventKey?: string | null,
+ *   recentOprEventName?: string | null,
+ * }} Row
+ */
 
 let sortKey = "teamNumber";
 let sortDir = 1;
@@ -57,13 +69,38 @@ function visibleRows() {
   return out;
 }
 
+/** @param {Row} r @param {"max"|"recent"} which */
+function eventCell(r, which) {
+  const td = document.createElement("td");
+  const key = which === "max" ? r.maxOprEventKey : r.recentOprEventKey;
+  const name = which === "max" ? r.maxOprEventName : r.recentOprEventName;
+  if (key && name) {
+    const a = document.createElement("a");
+    a.href = `https://www.thebluealliance.com/event/${encodeURIComponent(key)}`;
+    a.rel = "noopener noreferrer";
+    a.target = "_blank";
+    a.textContent = name;
+    td.appendChild(a);
+  } else {
+    td.className = "muted";
+    td.textContent = "—";
+  }
+  return td;
+}
+
 function render() {
   if (!payload) return;
   const rows = visibleRows();
   tbody.replaceChildren();
   const frag = document.createDocumentFragment();
-  for (const r of rows) {
+  rows.forEach((r, rankIndex) => {
     const tr = document.createElement("tr");
+    const rank = rankIndex + 1;
+
+    const tdRank = document.createElement("td");
+    tdRank.className = "num col-rank";
+    tdRank.textContent = String(rank);
+    tdRank.setAttribute("aria-label", `Rank ${rank} in current view`);
 
     const tdNum = document.createElement("td");
     tdNum.className = "num";
@@ -77,27 +114,20 @@ function render() {
     const tdNick = document.createElement("td");
     tdNick.textContent = r.nickname || "";
 
-    const tdOpr = document.createElement("td");
-    tdOpr.className = "num";
-    tdOpr.textContent =
+    const tdMaxOpr = document.createElement("td");
+    tdMaxOpr.className = "num";
+    tdMaxOpr.textContent =
       r.maxOpr != null && !Number.isNaN(r.maxOpr) ? r.maxOpr.toFixed(3) : "—";
 
-    const tdEv = document.createElement("td");
-    if (r.maxOprEventKey && r.maxOprEventName) {
-      const a = document.createElement("a");
-      a.href = `https://www.thebluealliance.com/event/${encodeURIComponent(r.maxOprEventKey)}`;
-      a.rel = "noopener noreferrer";
-      a.target = "_blank";
-      a.textContent = r.maxOprEventName;
-      tdEv.appendChild(a);
-    } else {
-      tdEv.className = "muted";
-      tdEv.textContent = "—";
-    }
+    const tdRecentOpr = document.createElement("td");
+    tdRecentOpr.className = "num";
+    const ro = r.recentOpr;
+    tdRecentOpr.textContent =
+      ro != null && !Number.isNaN(ro) ? ro.toFixed(3) : "—";
 
-    tr.append(tdNum, tdNick, tdOpr, tdEv);
+    tr.append(tdRank, tdNum, tdNick, tdMaxOpr, eventCell(r, "max"), tdRecentOpr, eventCell(r, "recent"));
     frag.appendChild(tr);
-  }
+  });
   tbody.appendChild(frag);
 }
 
@@ -108,7 +138,9 @@ document.querySelectorAll("th button[data-sort]").forEach((btn) => {
     if (sortKey === key) sortDir *= -1;
     else {
       sortKey = key;
-      sortDir = key === "nickname" || key === "maxOprEventName" ? 1 : key === "maxOpr" ? -1 : 1;
+      const nameCols = key === "nickname" || key === "maxOprEventName" || key === "recentOprEventName";
+      const descNum = key === "maxOpr" || key === "recentOpr";
+      sortDir = nameCols ? 1 : descNum ? -1 : 1;
     }
     render();
   });

@@ -72,21 +72,41 @@ async function main() {
       maxOpr: null,
       maxOprEventKey: null,
       maxOprEventName: null,
+      recentOpr: null,
+      recentOprEventKey: null,
+      recentOprEventName: null,
     });
   }
 
   console.log(`Loading ${YEAR} events…`);
   const events = await fetchEventSimpleList();
   const eventNameByKey = new Map(events.map((e) => [e.key, e.name ?? e.key]));
+  /** yyyy-mm-dd for sorting; missing dates sort before any real date */
+  const eventSortDateByKey = new Map(
+    events.map((e) => {
+      const raw = e.end_date || e.start_date;
+      const d =
+        typeof raw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : "0000-00-00";
+      return [e.key, d];
+    }),
+  );
 
   /** @type {Map<string, { opr: number, eventKey: string }>} */
   const best = new Map();
+  /** @type {Map<string, { opr: number, eventKey: string, sortDate: string }>} */
+  const mostRecent = new Map();
+
+  function isNewerEvent(aKey, aDate, bKey, bDate) {
+    if (aDate !== bDate) return aDate > bDate;
+    return aKey > bKey;
+  }
 
   const keys = events.map((e) => e.key);
   console.log(`Fetching OPR for ${keys.length} events…`);
 
   let done = 0;
   for (const eventKey of keys) {
+    const sortDate = eventSortDateByKey.get(eventKey) ?? "0000-00-00";
     const oprsPayload = await tba(`/event/${eventKey}/oprs`);
     const oprs = oprsPayload?.oprs;
     if (oprs && typeof oprs === "object") {
@@ -95,6 +115,10 @@ async function main() {
         const prev = best.get(teamKey);
         if (!prev || val > prev.opr) {
           best.set(teamKey, { opr: val, eventKey });
+        }
+        const prevR = mostRecent.get(teamKey);
+        if (!prevR || isNewerEvent(eventKey, sortDate, prevR.eventKey, prevR.sortDate)) {
+          mostRecent.set(teamKey, { opr: val, eventKey, sortDate });
         }
       }
     }
@@ -120,12 +144,36 @@ async function main() {
         maxOpr: null,
         maxOprEventKey: null,
         maxOprEventName: null,
+        recentOpr: null,
+        recentOprEventKey: null,
+        recentOprEventName: null,
       };
       byKey.set(teamKey, row);
     }
     row.maxOpr = Math.round(opr * 1000) / 1000;
     row.maxOprEventKey = eventKey;
     row.maxOprEventName = eventNameByKey.get(eventKey) ?? eventKey;
+  }
+
+  for (const [teamKey, { opr, eventKey }] of mostRecent) {
+    let row = byKey.get(teamKey);
+    if (!row) {
+      row = {
+        teamKey,
+        teamNumber: numberFromTeamKey(teamKey),
+        nickname: "",
+        maxOpr: null,
+        maxOprEventKey: null,
+        maxOprEventName: null,
+        recentOpr: null,
+        recentOprEventKey: null,
+        recentOprEventName: null,
+      };
+      byKey.set(teamKey, row);
+    }
+    row.recentOpr = Math.round(opr * 1000) / 1000;
+    row.recentOprEventKey = eventKey;
+    row.recentOprEventName = eventNameByKey.get(eventKey) ?? eventKey;
   }
 
   const teams = [...byKey.values()].sort((a, b) => a.teamNumber - b.teamNumber);
