@@ -1,0 +1,8 @@
+{
+  "name": "frc-2026-max-opr",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch-data": "node scripts/fetch-opr-data.mjs"
+  }
+}

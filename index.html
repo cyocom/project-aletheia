@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FRC 2026 — max OPR by team</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <h1>FRC 2026 — highest OPR per team</h1>
+      <p class="lede">
+        Each row is one team’s best OPR at any single event in 2026 (from
+        <a href="https://www.thebluealliance.com/">The Blue Alliance</a>). Regenerate
+        <code>data/teams-opr-2026.json</code> with
+        <code>npm run fetch-data</code> after setting <code>TBA_AUTH_KEY</code>.
+      </p>
+      <div id="meta" class="meta" aria-live="polite"></div>
+      <div class="toolbar">
+        <label class="search">
+          <span class="sr-only">Filter teams</span>
+          <input
+            id="filter"
+            type="search"
+            placeholder="Search by team # or nickname…"
+            autocomplete="off"
+          />
+        </label>
+      </div>
+    </header>
+
+    <main>
+      <div id="error" class="error hidden" role="alert"></div>
+      <div class="table-wrap">
+        <table id="grid">
+          <thead>
+            <tr>
+              <th scope="col"><button type="button" data-sort="teamNumber">Team</button></th>
+              <th scope="col"><button type="button" data-sort="nickname">Nickname</button></th>
+              <th scope="col"><button type="button" data-sort="maxOpr" class="num">Max OPR</button></th>
+              <th scope="col"><button type="button" data-sort="maxOprEventName">Event</button></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </main>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>

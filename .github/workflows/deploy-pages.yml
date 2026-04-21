@@ -1,0 +1,58 @@
+# Build fresh TBA data and deploy static assets to GitHub Pages.
+#
+# Setup (once per repo):
+#   1. Settings → Secrets and variables → Actions → New repository secret:
+#      name: TBA_AUTH_KEY   value: (from https://www.thebluealliance.com/account)
+#   2. Settings → Pages → Build and deployment → Source: GitHub Actions
+#
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ["main", "master"]
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Fetch TBA data
+        env:
+          TBA_AUTH_KEY: ${{ secrets.TBA_AUTH_KEY }}
+        run: npm run fetch-data
+
+      - name: Assemble site
+        run: |
+          mkdir -p _site/data
+          cp index.html styles.css app.js _site/
+          cp data/teams-opr-2026.json _site/data/
+          touch _site/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
