@@ -3,7 +3,7 @@ const errEl = document.getElementById("error");
 const tbody = document.getElementById("tbody");
 const filterInput = document.getElementById("filter");
 
-/** @type {{ generatedAt: string, year: number, teamCount: number, teamsWithOpr: number, teams: Row[] }} */
+/** @type {{ generatedAt: string, year: number, teamCount: number, teamsWithOpr: number, teams: Row[], teamsWithTrimmedOpr?: number } | null} */
 let payload = null;
 
 /**
@@ -17,8 +17,23 @@ let payload = null;
  *   recentOpr?: number | null,
  *   recentOprEventKey?: string | null,
  *   recentOprEventName?: string | null,
+ *   latestEventTrimmedOpr?: number | null,
+ *   trimmedMinusRecentOpr?: number | null,
  * }} Row
  */
+
+/** @param {Row} r */
+function trimmedMinusRecentValue(r) {
+  if (r.trimmedMinusRecentOpr != null && Number.isFinite(r.trimmedMinusRecentOpr)) {
+    return r.trimmedMinusRecentOpr;
+  }
+  const t = r.latestEventTrimmedOpr;
+  const rec = r.recentOpr;
+  if (t != null && rec != null && Number.isFinite(t) && Number.isFinite(rec)) {
+    return t - rec;
+  }
+  return null;
+}
 
 let sortKey = "teamNumber";
 let sortDir = 1;
@@ -35,8 +50,10 @@ function clearError() {
 }
 
 function compare(a, b) {
-  const av = a[sortKey];
-  const bv = b[sortKey];
+  const av =
+    sortKey === "trimmedMinusRecentOpr" ? trimmedMinusRecentValue(a) : a[sortKey];
+  const bv =
+    sortKey === "trimmedMinusRecentOpr" ? trimmedMinusRecentValue(b) : b[sortKey];
   if (av == null && bv == null) return 0;
   if (av == null) return 1;
   if (bv == null) return -1;
@@ -125,7 +142,29 @@ function render() {
     tdRecentOpr.textContent =
       ro != null && !Number.isNaN(ro) ? ro.toFixed(3) : "—";
 
-    tr.append(tdRank, tdNum, tdNick, tdMaxOpr, eventCell(r, "max"), tdRecentOpr, eventCell(r, "recent"));
+    const tdTrim = document.createElement("td");
+    tdTrim.className = "num";
+    const trm = r.latestEventTrimmedOpr;
+    tdTrim.textContent =
+      trm != null && !Number.isNaN(trm) ? trm.toFixed(3) : "—";
+
+    const tdDelta = document.createElement("td");
+    tdDelta.className = "num";
+    const d = trimmedMinusRecentValue(r);
+    tdDelta.textContent =
+      d != null && !Number.isNaN(d) ? d.toFixed(3) : "—";
+
+    tr.append(
+      tdRank,
+      tdNum,
+      tdNick,
+      tdMaxOpr,
+      eventCell(r, "max"),
+      tdRecentOpr,
+      tdTrim,
+      tdDelta,
+      eventCell(r, "recent"),
+    );
     frag.appendChild(tr);
   });
   tbody.appendChild(frag);
@@ -138,8 +177,13 @@ document.querySelectorAll("th button[data-sort]").forEach((btn) => {
     if (sortKey === key) sortDir *= -1;
     else {
       sortKey = key;
-      const nameCols = key === "nickname" || key === "maxOprEventName" || key === "recentOprEventName";
-      const descNum = key === "maxOpr" || key === "recentOpr";
+      const nameCols =
+        key === "nickname" || key === "maxOprEventName" || key === "recentOprEventName";
+      const descNum =
+        key === "maxOpr" ||
+        key === "recentOpr" ||
+        key === "latestEventTrimmedOpr" ||
+        key === "trimmedMinusRecentOpr";
       sortDir = nameCols ? 1 : descNum ? -1 : 1;
     }
     render();
@@ -184,11 +228,15 @@ async function load() {
   const teamLine = `${payload.teamCount ?? payload.teams?.length ?? 0} teams · ${
     payload.teamsWithOpr ?? "?"
   } with OPR`;
+  let trimLine = "";
+  if (payload.teamsWithTrimmedOpr != null) {
+    trimLine = ` · ${payload.teamsWithTrimmedOpr} with trimmed (latest)`;
+  }
   let eventLine = "";
   if (payload.eventsUsedForOpr != null && payload.eventsTotalInYear != null) {
     eventLine = ` · ${payload.eventsUsedForOpr}/${payload.eventsTotalInYear} official events for OPR`;
   }
-  metaEl.textContent = `Data from ${when} · ${teamLine}${eventLine}`;
+  metaEl.textContent = `Data from ${when} · ${teamLine}${trimLine}${eventLine}`;
   render();
 }
 

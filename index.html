@@ -13,7 +13,11 @@
         Each row shows a team’s highest OPR at any official 2026 event (regionals,
         districts, championships, etc.—not preseason or offseason) and their OPR at the
         calendar-latest such event (from
-        <a href="https://www.thebluealliance.com/">The Blue Alliance</a>). Regenerate
+        <a href="https://www.thebluealliance.com/">The Blue Alliance</a>).
+        Trimmed (latest) uses one global qual least squares fit at that event, then for each
+        team drops up to three of their worst-residual matches and **refits only that
+        team’s number** while everyone else stays at the global coefficients (see
+        <code>trimmedOprNote</code> in the JSON). Regenerate
         <code>data/teams-opr-2026.json</code> with
         <code>npm run fetch-data</code> after setting <code>TBA_AUTH_KEY</code>.
       </p>
@@ -45,6 +49,16 @@
               <th scope="col"><button type="button" data-sort="maxOpr" class="num">Max OPR</button></th>
               <th scope="col"><button type="button" data-sort="maxOprEventName">Max event</button></th>
               <th scope="col"><button type="button" data-sort="recentOpr" class="num">Recent OPR</button></th>
+              <th scope="col">
+                <button type="button" data-sort="latestEventTrimmedOpr" class="num" title="Per-team refit after dropping worst residual quals; same latest event as Recent OPR">
+                  Trimmed (latest)
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" data-sort="trimmedMinusRecentOpr" class="num" title="Trimmed (latest) minus Recent OPR">
+                  Trim − Recent
+                </button>
+              </th>
               <th scope="col"><button type="button" data-sort="recentOprEventName">Recent event</button></th>
             </tr>
           </thead>
