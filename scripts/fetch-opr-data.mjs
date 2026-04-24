@@ -272,6 +272,7 @@ function emptyTeamRow(teamKey, teamNumber, nickname) {
     teamKey,
     teamNumber,
     nickname,
+    worldDivision: null,
     maxOpr: null,
     maxOprEventKey: null,
     maxOprEventName: null,
@@ -298,6 +299,21 @@ async function main() {
     `Using ${events.length} official season events for OPR (${allEvents.length} total in ${YEAR} on TBA).`,
   );
   const eventNameByKey = new Map(events.map((e) => [e.key, e.name ?? e.key]));
+  const worldDivisionEvents = events.filter((e) => e.event_type === 3);
+  console.log(
+    `Loading teams for ${worldDivisionEvents.length} Championship division events (event_type=3)…`,
+  );
+  /** @type {Map<string, string>} */
+  const worldDivisionByTeamKey = new Map();
+  for (const divEvent of worldDivisionEvents) {
+    const teamKeys = (await tba(`/event/${divEvent.key}/teams/keys`)) ?? [];
+    const divisionName = divEvent.name ?? divEvent.key;
+    for (const teamKey of teamKeys) {
+      if (!worldDivisionByTeamKey.has(teamKey)) {
+        worldDivisionByTeamKey.set(teamKey, divisionName);
+      }
+    }
+  }
   /** yyyy-mm-dd for sorting; missing dates sort before any real date */
   const eventSortDateByKey = new Map(
     events.map((e) => {
@@ -408,8 +424,12 @@ async function main() {
   }
 
   const teams = [...byKey.values()].sort((a, b) => a.teamNumber - b.teamNumber);
+  for (const row of teams) {
+    row.worldDivision = worldDivisionByTeamKey.get(row.teamKey) ?? null;
+  }
   const teamsWithOpr = teams.filter((t) => t.maxOpr != null).length;
   const teamsWithTrimmed = teams.filter((t) => t.latestEventTrimmedOpr != null).length;
+  const teamsWithWorldDivision = teams.filter((t) => t.worldDivision != null).length;
 
   const payload = {
     generatedAt: new Date().toISOString(),
@@ -421,6 +441,7 @@ async function main() {
     teamCount: teams.length,
     teamsWithOpr,
     teamsWithTrimmedOpr: teamsWithTrimmed,
+    teamsWithWorldDivision,
     eventsFetchedForTrimmedOpr: recentEventKeys.size,
     trimmedOprBasis: "residual",
     trimmedOprMethod: "perTeamRefitFixedPartners",

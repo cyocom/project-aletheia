@@ -74,6 +74,33 @@ h1 {
   align-items: center;
 }
 
+.tabs {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tabs button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.tabs button:hover {
+  border-color: var(--accent-dim);
+}
+
+.tabs button[aria-selected="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+}
+
 .search input {
   width: min(100%, 320px);
   padding: 0.55rem 0.75rem;

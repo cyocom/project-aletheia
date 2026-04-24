@@ -2,6 +2,7 @@ const metaEl = document.getElementById("meta");
 const errEl = document.getElementById("error");
 const tbody = document.getElementById("tbody");
 const filterInput = document.getElementById("filter");
+const divisionTabsEl = document.getElementById("division-tabs");
 
 /** @type {{ generatedAt: string, year: number, teamCount: number, teamsWithOpr: number, teams: Row[], teamsWithTrimmedOpr?: number } | null} */
 let payload = null;
@@ -19,6 +20,7 @@ let payload = null;
  *   recentOprEventName?: string | null,
  *   latestEventTrimmedOpr?: number | null,
  *   trimmedMinusRecentOpr?: number | null,
+ *   worldDivision?: string | null,
  * }} Row
  */
 
@@ -38,6 +40,77 @@ function trimmedMinusRecentValue(r) {
 let sortKey = "teamNumber";
 let sortDir = 1;
 let filterText = "";
+let activeDivision = "all";
+const WORLD_DIVISION_NAMES = [
+  "Archimedes",
+  "Carson",
+  "Curie",
+  "Daly",
+  "Galileo",
+  "Hopper",
+  "Johnson",
+  "Milstein",
+  "Newton",
+  "Roebling",
+];
+
+/** @param {Row} row */
+function worldDivisionOf(row) {
+  if (typeof row.worldDivision === "string" && row.worldDivision.trim()) {
+    return row.worldDivision.trim();
+  }
+  const names = [row.recentOprEventName, row.maxOprEventName];
+  for (const eventName of names) {
+    if (!eventName) continue;
+    const lower = eventName.toLowerCase();
+    for (const division of WORLD_DIVISION_NAMES) {
+      if (lower.includes(`${division.toLowerCase()} division`)) {
+        return `${division} Division`;
+      }
+    }
+  }
+  return null;
+}
+
+function renderDivisionTabs() {
+  if (!payload || !divisionTabsEl) return;
+  const divisions = new Set();
+  payload.teams.forEach((r) => {
+    const division = worldDivisionOf(r);
+    if (division) divisions.add(division);
+  });
+
+  if (divisions.size === 0) {
+    divisionTabsEl.replaceChildren();
+    divisionTabsEl.classList.add("hidden");
+    activeDivision = "all";
+    return;
+  }
+
+  const sorted = [...divisions].sort((a, b) => a.localeCompare(b));
+  if (activeDivision !== "all" && !sorted.includes(activeDivision)) {
+    activeDivision = "all";
+  }
+
+  divisionTabsEl.classList.remove("hidden");
+  const frag = document.createDocumentFragment();
+  const tabs = [{ id: "all", label: "All teams" }, ...sorted.map((d) => ({ id: d, label: d }))];
+  tabs.forEach((tab) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.setAttribute("role", "tab");
+    const selected = activeDivision === tab.id;
+    btn.setAttribute("aria-selected", selected ? "true" : "false");
+    btn.textContent = tab.label;
+    btn.addEventListener("click", () => {
+      activeDivision = tab.id;
+      renderDivisionTabs();
+      render();
+    });
+    frag.appendChild(btn);
+  });
+  divisionTabsEl.replaceChildren(frag);
+}
 
 function showError(msg) {
   errEl.textContent = msg;
@@ -71,6 +144,9 @@ function visibleRows() {
   if (!payload) return [];
   const q = filterText.trim().toLowerCase();
   let rows = payload.teams;
+  if (activeDivision !== "all") {
+    rows = rows.filter((r) => worldDivisionOf(r) === activeDivision);
+  }
   if (q) {
     rows = rows.filter((r) => {
       const num = String(r.teamNumber);
@@ -237,6 +313,7 @@ async function load() {
     eventLine = ` · ${payload.eventsUsedForOpr}/${payload.eventsTotalInYear} official events for OPR`;
   }
   metaEl.textContent = `Data from ${when} · ${teamLine}${trimLine}${eventLine}`;
+  renderDivisionTabs();
   render();
 }
 
